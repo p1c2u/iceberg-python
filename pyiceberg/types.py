@@ -311,6 +311,8 @@ class NestedField(IcebergType):
     doc: Optional[str] = Field(default=None, repr=False)
     initial_default: Optional[Any] = Field(alias="initial-default", default=None, repr=False)
     write_default: Optional[L] = Field(alias="write-default", default=None, repr=False)  # type: ignore
+    metadata: Optional[Dict[str, str]] = Field(default_factory=dict, repr=False)
+    _hash: int = PrivateAttr()
 
     def __init__(
         self,
@@ -321,6 +323,7 @@ class NestedField(IcebergType):
         doc: Optional[str] = None,
         initial_default: Optional[Any] = None,
         write_default: Optional[L] = None,
+        metadata: Optional[Dict[str, str]] = None,
         **data: Any,
     ):
         # We need an init when we want to use positional arguments, but
@@ -332,17 +335,23 @@ class NestedField(IcebergType):
         data["doc"] = doc
         data["initial-default"] = data["initial-default"] if "initial-default" in data else initial_default
         data["write-default"] = data["write-default"] if "write-default" in data else write_default
+        data["metadata"] = data["metadata"] if "metadata" in data else metadata
         super().__init__(**data)
+        self._hash = hash(data.values())
 
     def __str__(self) -> str:
         """Return the string representation of the NestedField class."""
         doc = "" if not self.doc else f" ({self.doc})"
         req = "required" if self.required else "optional"
-        return f"{self.field_id}: {self.name}: {req} {self.field_type}{doc}"
+        return f"{self.field_id}: {self.name}: {req} {self.field_type} {self.metadata}{doc}"
 
-    def __getnewargs__(self) -> Tuple[int, str, IcebergType, bool, Optional[str]]:
+    def __getnewargs__(self) -> Tuple[int, str, IcebergType, bool, Optional[str], Optional[Dict[str, str]]]:
         """Pickle the NestedField class."""
-        return (self.field_id, self.name, self.field_type, self.required, self.doc)
+        return (self.field_id, self.name, self.field_type, self.required, self.doc, self.metadata)
+
+    def __hash__(self) -> int:
+        """Use the cache hash value of the NestedField class."""
+        return self._hash
 
     @property
     def optional(self) -> bool:

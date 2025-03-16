@@ -607,7 +607,7 @@ class _ConvertToArrowSchema(SchemaVisitorPerPrimitiveType[pa.DataType]):
         return pa.struct(field_results)
 
     def field(self, field: NestedField, field_result: pa.DataType) -> pa.Field:
-        metadata = {}
+        metadata = field.metadata.copy()
         if field.doc:
             metadata[PYARROW_FIELD_DOC_KEY] = field.doc
         if self._include_field_ids:
